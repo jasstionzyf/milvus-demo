@@ -3,15 +3,17 @@ import random
 from loguru import logger as logger
 
 
-indexTypeMapping={}
+indexBuildParamsMapping={}
 
 hnswParams={"M": 4, 'efConstruction': 13}
-indexTypeMapping['HNSW']=hnswParams
+indexBuildParamsMapping['HNSW']=hnswParams
 flatParams={}
-indexTypeMapping['FLAT']=hnswParams
+indexBuildParamsMapping['FLAT']=hnswParams
 
 IVF_FLATParams={'nlist':100}
-indexTypeMapping['IVF_FLAT']=IVF_FLATParams
+indexBuildParamsMapping['IVF_FLAT']=IVF_FLATParams
+
+
 
 indexSearchParams={}
 hnswSearchParams={'ef':300}
@@ -134,6 +136,55 @@ def milvusTest(params=None):
                     #
                     # collection.delete(expr)
                     logger.info(result)
+    elif opName == 'update':
+        collection = Collection(collectionName)
+
+        newFeaturesNum = 1000
+        featuresNum=newFeaturesNum
+        indexBuildParams = indexTypeMapping.get(indexType)
+        logger.info('index params:', indexBuildParams)
+
+        batchAddNum = 100
+        d = 0
+        partitionName = None
+        for i0 in range(0, featuresNum, batchAddNum):
+
+            if len(partitionNames) == 2:
+                partitionName = partitionNames[d % 2]
+                if d == 0:
+                    d = 1
+                else:
+                    d = 0
+
+            i1 = min(featuresNum, i0 + batchAddNum)
+            vectors = [[random.random() for _ in range(dimNum)] for _ in range(i1 - i0)]
+
+            logger.info("  adding %d:%d / %d" % (i0, i1, featuresNum))
+            if partitionName is None:
+                insertResult = collection.insert(
+                    [
+                        [i for i in range(i0, i1, 1)],
+                        [float(random.randrange(-20, -10)) for _ in range(i0, i1, 1)],
+                        vectors
+                    ]
+                )
+            else:
+                logger.info('insert to partitionName:{}',partitionName)
+                insertResult = collection.insert(
+                    [
+                        [i for i in range(i0, i1, 1)],
+                        [float(random.randrange(-20, -10)) for _ in range(i0, i1, 1)],
+                        vectors
+                    ], partition_name=partitionName
+                )
+
+            logger.info(insertResult.primary_keys)
+        totalNum = collection.num_entities
+        logger.info('finished add new  features, totalNum:{}', totalNum)
+
+
+
+
 
     else:
         raise Exception('not supported opName:%s' % opName)
@@ -154,10 +205,18 @@ if __name__ == "__main__":
 
 
     params={}
-    params['collectionName']='milvusTest1_FLAT'
-    params['indexType']='FLAT'
+    params['collectionName']='milvusTest1_HNSW_partitions_shard'
+    params['indexType']='HNSW'
     # params['opName'] = 'build'
-    params['opName'] = 'query'
+    # params['opName'] = 'query'
+    params['opName'] = 'update'
+
+    params['partitionNames'] = ['p1','p2']
+    params['shardNum'] = 2
+
+
+
+
 
     milvusTest(params=params)
 
