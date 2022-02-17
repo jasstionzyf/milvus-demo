@@ -29,7 +29,7 @@ indexSearchParams['FLAT']=IVF_FLATSearchParams
 
 
 hnswParams={"M": 4, 'efConstruction': 13}
-indexTypeMapping['HNSW']=hnswParams
+indexBuildParamsMapping['HNSW']=hnswParams
 
 def milvusTest(params=None):
     collectionName=params.get('collectionName')
@@ -64,7 +64,7 @@ def milvusTest(params=None):
         logger.info('create partitions:{}',partitionNames)
         for p in partitionNames:
             collection.create_partition(partition_name=p)
-        indexBuildParams=indexTypeMapping.get(indexType)
+        indexBuildParams=indexBuildParamsMapping.get(indexType)
         logger.info('index params:',indexBuildParams)
         default_index = {"index_type": indexType, "params": indexBuildParams, "metric_type": metric_type}
         collection.create_index(field_name="features", index_params=default_index)
@@ -141,7 +141,7 @@ def milvusTest(params=None):
 
         newFeaturesNum = 1000
         featuresNum=newFeaturesNum
-        indexBuildParams = indexTypeMapping.get(indexType)
+        indexBuildParams = indexBuildParamsMapping.get(indexType)
         logger.info('index params:', indexBuildParams)
 
         batchAddNum = 100
